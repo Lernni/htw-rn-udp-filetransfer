@@ -45,7 +45,15 @@ public class SWHandler {
 
             // receive datagram
             try {
-                clientSocket.receive(datagramReceivePacket);
+                while (true) {
+                    clientSocket.receive(datagramReceivePacket);
+
+                    // check if received packet is valid and if the packet number is correct
+                    SWAckPacket ackPacket = new SWAckPacket();
+                    if (ackPacket.setData(datagramReceivePacket.getData())) {
+                        if (packet.getPacketNumber() == ackPacket.getPacketNumber()) break;
+                    }
+                }
                 break;
             } catch (SocketTimeoutException e) {
                 // timeout reached
@@ -60,14 +68,8 @@ public class SWHandler {
             }
         }
 
-        // check if received packet is valid
-        SWAckPacket ackPacket = new SWAckPacket();
-        if (!ackPacket.setData(datagramReceivePacket.getData())) {
-            return false;
-        }
-
         clientSocket.close();
-        return packet.getPacketNumber() == ackPacket.getPacketNumber(); // check if right packet got received
+        return true;
     }
 
     public SWPacket receivePacket(SWPacket packet, int port) {
