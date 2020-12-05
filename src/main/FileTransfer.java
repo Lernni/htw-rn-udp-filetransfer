@@ -9,12 +9,14 @@ public class FileTransfer {
 
     public FileTransfer() { }
 
-    public boolean sendRequest(InetAddress host, Integer port, File file) {
+    public boolean sendRequest(InetAddress host, int port, File file) {
         // send start packet & receive answer
         SWStartPacket startPacket = new SWStartPacket(file);
         SWHandler handler = new SWHandler();
         if (handler.sendPacket(startPacket, host, port)) {
-            System.out.println("Start packet '" + startPacket.getSessionNumber() + "' sent, received ACK!");
+            System.out.println("FT: Start packet '" + startPacket.getSessionNumber() + "' sent, received ACK!");
+        } else {
+            return false;
         }
 
         //packetNumber = (byte) (packetNumber ^ 1); // XOR
@@ -24,13 +26,13 @@ public class FileTransfer {
         return true;
     }
 
-    public boolean receiveRequest(Integer port) {
+    public boolean receiveRequest(int port) {
         // wait for packet & send answer
         SWHandler handler = new SWHandler();
         SWStartPacket startPacket = new SWStartPacket();
         startPacket = (SWStartPacket) handler.receivePacket(startPacket, port);
         if (startPacket != null) {
-            System.out.println("Start packet '" + startPacket.getSessionNumber() + "' received, ACK sent!");
+            System.out.println("FT: Start packet '" + startPacket.getSessionNumber() + "' received, ACK sent!");
         }
         return startPacket != null;
     }

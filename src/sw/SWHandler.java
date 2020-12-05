@@ -1,10 +1,7 @@
 package sw;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
+import java.net.*;
 
 public class SWHandler {
     public SWHandler() {}
@@ -23,24 +20,44 @@ public class SWHandler {
         byte[] sendData = packet.getData();
         DatagramPacket datagramSendPacket = new DatagramPacket(sendData, sendData.length, host, port);
 
-        // send datagram
-        try {
-            clientSocket.send(datagramSendPacket);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
-
         // prepare receive-datagram
         byte[] receiveData = new byte[SWAckPacket.PACKET_SIZE];
         DatagramPacket datagramReceivePacket = new DatagramPacket(receiveData, receiveData.length);
 
-        // receive datagram
+        // prepare socket timeout
+        int timeoutTries = 0;
         try {
-            clientSocket.receive(datagramReceivePacket);
-        } catch (IOException e) {
+            clientSocket.setSoTimeout(1000);
+        } catch (SocketException e) {
             e.printStackTrace();
             return false;
+        }
+
+        // loop will be left, if a packet got received or an error had occurred
+        while (true) {
+            // send datagram
+            try {
+                clientSocket.send(datagramSendPacket);
+            } catch (IOException e) {
+                e.printStackTrace();
+                return false;
+            }
+
+            // receive datagram
+            try {
+                clientSocket.receive(datagramReceivePacket);
+                break;
+            } catch (SocketTimeoutException e) {
+                // timeout reached
+                timeoutTries++;
+                if (timeoutTries == 10) {
+                    System.out.println("SW: No answer from host after 10 retries, canceling request...");
+                    return false;
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                return false;
+            }
         }
 
         // check if received packet is valid
