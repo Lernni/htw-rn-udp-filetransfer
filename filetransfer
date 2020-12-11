@@ -6,10 +6,10 @@ Client: $0 client <hostname/ip> <port> <file>\nServer: $0 server <port> [<loss_r
 if [ "$1" == "server" ] && [ $# -ge 2 ] && [ $# -le 4 ]
 then
   # -cp option as classpath specifies location of java program: bin
-  java -cp bin TransferServer "$2" "$3" "$4"
+  java -cp bin main.TransferServer "$2" "$3" "$4"
 elif [ "$1" == "client" ] && [ $# -eq 4 ]
 then
-  java -cp bin TransferClient "$2" "$3" "$4"
+  java -cp bin main.TransferClient "$2" "$3" "$4"
 else
   echo -e "$USAGE_MSG"
 fi

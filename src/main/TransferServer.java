@@ -1,8 +1,11 @@
 package main;
 
+import java.io.File;
+import java.io.IOException;
+
 public class TransferServer {
 
-    private static Integer port;
+    private static int port;
 
     public static void main(String[] args) {
         if (args.length > 3 || args.length < 1) {
@@ -11,7 +14,7 @@ public class TransferServer {
             System.out.println("*** UDP File Transfer - Server ***");
 
             try {
-                port = Integer.valueOf(args[0]);
+                port = Integer.parseInt(args[0]);
             } catch (NumberFormatException e) {
                 System.out.println("Error: Please enter a valid port number!");
                 e.printStackTrace();
@@ -19,9 +22,14 @@ public class TransferServer {
             }
 
             // wait for file transfer
-            FileTransfer fileTransfer = new FileTransfer();
-            if (fileTransfer.receiveRequest(port)) {
-                System.out.println("Success: Received File");
+            while (true) {
+                FileTransfer fileTransfer = new FileTransfer();
+                try {
+                    String filePath = fileTransfer.receiveRequest(port);
+                    if (filePath != null) {
+                        System.out.println("Success: Received '" + new File(filePath).getName() + "' !");
+                    }
+                } catch (IOException e) {}
             }
         }
     }

@@ -55,7 +55,7 @@ public class SWStartPacket extends SWPacket {
     }
 
     public boolean setData(byte[] data) {
-        int dataLength = (data.length > PACKET_SIZE) ? PACKET_SIZE : data.length;
+        int dataLength = Math.min(data.length, PACKET_SIZE);
         buffer = ByteBuffer.allocate(dataLength);
         buffer.put(Arrays.copyOfRange(data, 0, dataLength));
 

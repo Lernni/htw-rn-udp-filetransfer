@@ -10,9 +10,11 @@ public class SWAckPacket extends SWPacket {
         buffer = ByteBuffer.allocate(PACKET_SIZE);
 
         // session number
+        this.sessionNumber = sessionNumber;
         buffer.putShort(sessionNumber); // 16 bit
 
         // packet number
+        this.packetNumber = packetNumber;
         buffer.put(packetNumber); // 8 bit
     }
 

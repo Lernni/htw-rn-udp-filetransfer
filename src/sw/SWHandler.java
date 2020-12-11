@@ -2,15 +2,19 @@ package sw;
 
 import java.io.IOException;
 import java.net.*;
+import java.util.Arrays;
 
 public class SWHandler {
+    DatagramSocket serverSocket;
+
     public SWHandler() {}
 
     public boolean sendPacket(SWPacket packet, InetAddress host, int port) {
         // create client socket
-        DatagramSocket clientSocket = null;
+        DatagramSocket clientSocket;
         try {
             clientSocket = new DatagramSocket();
+            clientSocket.setSoTimeout(1000);
         } catch (SocketException e) {
             e.printStackTrace();
             return false;
@@ -24,16 +28,8 @@ public class SWHandler {
         byte[] receiveData = new byte[SWAckPacket.PACKET_SIZE];
         DatagramPacket datagramReceivePacket = new DatagramPacket(receiveData, receiveData.length);
 
-        // prepare socket timeout
-        int timeoutTries = 0;
-        try {
-            clientSocket.setSoTimeout(1000);
-        } catch (SocketException e) {
-            e.printStackTrace();
-            return false;
-        }
-
         // loop will be left, if a packet got received or an error had occurred
+        int timeoutTries = 0;
         while (true) {
             // send datagram
             try {
@@ -72,36 +68,32 @@ public class SWHandler {
         return true;
     }
 
-    public SWPacket receivePacket(SWPacket packet, int port) {
+    public SWPacket receivePacket(SWPacket packet, int port) throws IOException {
         // create server socket
-        DatagramSocket serverSocket = null;
         try {
             serverSocket = new DatagramSocket(port);
+            serverSocket.setSoTimeout(10000);
         } catch (SocketException e) {
             e.printStackTrace();
             return null;
         }
 
-        // prepare receive-datagram
+        // wait for datagram
         byte[] receiveData = new byte[1024];
         DatagramPacket datagramReceivePacket = new DatagramPacket(receiveData, receiveData.length);
 
-        // wait for datagram
-        try {
-            serverSocket.receive(datagramReceivePacket);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
+        serverSocket.receive(datagramReceivePacket);
 
         // check if received packet is valid
-        if (!packet.setData(datagramReceivePacket.getData())) {
+        receiveData = Arrays.copyOfRange(receiveData, 0, datagramReceivePacket.getLength());
+        if (!packet.setData(receiveData)) {
+            serverSocket.close();
             return null;
         }
 
         // get sender information
         InetAddress clientHost = datagramReceivePacket.getAddress();
-        Integer clientPort = datagramReceivePacket.getPort();
+        int clientPort = datagramReceivePacket.getPort();
 
         // prepare send-datagram (answer)
         SWAckPacket ackPacket = new SWAckPacket(packet.getSessionNumber(), packet.getPacketNumber());
@@ -118,5 +110,9 @@ public class SWHandler {
 
         serverSocket.close();
         return packet; // return packet to higher level
+    }
+
+    public void closeSockets() {
+        serverSocket.close();
     }
 }
