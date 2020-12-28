@@ -3,6 +3,12 @@ package sw;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
+/*
+* Ack Packet:
+* 2 Byte - session number
+* 1 Byte - packet number
+* */
+
 public class SWAckPacket extends SWPacket {
     public static final int PACKET_SIZE = 3;
 
@@ -22,19 +28,19 @@ public class SWAckPacket extends SWPacket {
     }
 
     public boolean setData(byte[] data) {
+        // prepare buffer
         buffer = ByteBuffer.allocate(PACKET_SIZE);
         buffer.put(Arrays.copyOfRange(data, 0, PACKET_SIZE));
 
         // check if buffer data is valid
-        packetNumber = buffer.get(2);
+        packetNumber = buffer.get(PN_INDEX);
         if (packetNumber != 0 && packetNumber != 1) {
-            packetNumber = 0;
             buffer.clear();
             return false;
         }
 
         // write buffer data in vars
-        sessionNumber = buffer.getShort(0);
+        sessionNumber = buffer.getShort(SN_INDEX);
 
         return true;
     }

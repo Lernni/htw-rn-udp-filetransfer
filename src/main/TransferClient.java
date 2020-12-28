@@ -18,7 +18,6 @@ public class TransferClient {
                 port = Integer.parseInt(args[1]);
             } catch (NumberFormatException e) {
                 System.out.println("Error: Please enter a valid port number!");
-                e.printStackTrace();
                 return;
             }
 
@@ -30,8 +29,12 @@ public class TransferClient {
 
             // start file transfer
             FileTransfer fileTransfer = new FileTransfer();
-            if (fileTransfer.sendRequest(host, port, file)) {
-                System.out.println("Success: File '" + file.getName() + "' was sent successfully to host '" + host.getHostName() + "' on port " + port);
+            if (fileTransfer.fileRequest(host, port, file)) {
+                System.out.println("Success: File '" + file.getName() + "' was sent successfully to host '" +
+                        host.getHostName() + "' on port " + port + "!");
+            } else {
+                System.out.println("Error: File '" + file.getName() + "' could not be sent to host '" +
+                        host.getHostName() + "' on port " + port + "!");
             }
         }
     }

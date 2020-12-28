@@ -10,41 +10,47 @@ import sw.*;
 
 public class FileTransfer {
 
-    public int maxContentLength = SWDataPacket.PACKET_SIZE - 3;
+    private final int CRC_LENGTH = 4;
+    private final int SOCKET_TIMEOUT = 10000;
 
     public FileTransfer() { }
 
-    public boolean sendRequest(InetAddress host, int port, File file) throws IOException {
+    public boolean fileRequest(InetAddress host, int port, File file) throws IOException {
         // send start packet & receive answer
-        SWHandler handler = new SWHandler();
+        SWHandler handler = new SWHandler(host, port, SOCKET_TIMEOUT);
         SWStartPacket startPacket = new SWStartPacket(file);
-        if (handler.sendPacket(startPacket, host, port)) {
-            System.out.println("FT: Start packet '" + startPacket.getSessionNumber() + "' sent, received ACK!");
+        if (handler.dataRequest(startPacket)) {
+            System.out.println("FT: Start packet '" + startPacket.getSessionNumber() + "' sent, received ACK");
         } else {
+            handler.closeSocket();
+            System.out.println("FT: Error: Start packet '" + startPacket.getSessionNumber() +
+                    "' could not be sent and/or verified!");
             return false;
         }
 
+        // prepare data packets
         DataInputStream dataInputStream = new DataInputStream(new FileInputStream(file.getPath()));
-
+        SWDataPacket dataPacket = new SWDataPacket();
         short sessionNumber = startPacket.getSessionNumber();
-        byte packetNumber = (byte) (startPacket.getPacketNumber() ^ 1); // XOR
+        byte packetNumber = startPacket.getPacketNumber();
         CRC32 crc = new CRC32();
-        Integer crcValue = null;
         boolean endOfFile = false;
 
         while (!endOfFile) {
             // read data from file
-            byte[] data = new byte[maxContentLength];
+            byte[] data = new byte[dataPacket.MAX_CONTENT_SIZE];
             int bytesRead = dataInputStream.read(data);
 
+            // update crc over every packet, as long as bytes are read
             if (bytesRead == -1) {
                 bytesRead = 0;
             } else {
                 crc.update(data, 0, bytesRead);
             }
 
-            if (bytesRead <= maxContentLength - 4) { // check if crc must be included
-                ByteBuffer buffer = ByteBuffer.allocate(bytesRead + 4);
+            // check if crc must be included
+            if (bytesRead <= dataPacket.MAX_CONTENT_SIZE - CRC_LENGTH) {
+                ByteBuffer buffer = ByteBuffer.allocate(bytesRead + CRC_LENGTH);
                 data = Arrays.copyOfRange(data, 0, bytesRead);
                 buffer.put(data);
                 buffer.putInt((int) crc.getValue());
@@ -52,44 +58,47 @@ public class FileTransfer {
                 endOfFile = true;
             }
 
+            // switch packet number for data packet
+            packetNumber = (byte) (packetNumber ^ 1);
+
             // send data packet
-            SWDataPacket dataPacket = new SWDataPacket(sessionNumber, packetNumber, data);
-            if (handler.sendPacket(dataPacket, host, port)) {
-                System.out.println("FT: Data packet '" + startPacket.getSessionNumber() + "' sent, received ACK!");
+            dataPacket = new SWDataPacket(sessionNumber, packetNumber, data);
+            if (handler.dataRequest(dataPacket)) {
+                System.out.println("FT: Data packet '" + startPacket.getSessionNumber() + "' sent, received ACK");
             } else {
+                System.out.println("FT: Error: Data packet '" + startPacket.getSessionNumber() +
+                        "' could not be sent and/or verified!");
                 return false;
             }
-
-            packetNumber = (byte) (packetNumber ^ 1);
         }
 
         dataInputStream.close();
+        handler.closeSocket();
         return true;
     }
 
-    public String receiveRequest(int port) throws IOException {
-        SWHandler handler = new SWHandler();
+    public String fileIndication(int port) throws IOException {
+        SWHandler handler = new SWHandler(port, SOCKET_TIMEOUT);
 
         // wait for start packet
-        SWStartPacket startPacket = new SWStartPacket();
-        while (true) {
+        SWStartPacket startPacket = null;
+        System.out.println("FT: Waiting for start packet...");
+
+        do {
             try {
-                startPacket = (SWStartPacket) handler.receivePacket(startPacket, port);
-                break;
-            } catch (SocketTimeoutException ignored) {
-                handler.closeSockets();
+                startPacket = (SWStartPacket) handler.dataIndication(new SWStartPacket());
+            } catch (SocketTimeoutException e) {
+                handler.closeSocket();
             }
-        }
+        } while (startPacket == null);
 
-        if (startPacket != null) {
-            System.out.println("FT: Start packet '" + startPacket.getSessionNumber() + "' received, ACK sent!");
-        } else {
-            return null;
-        }
+        handler.dataResponse();
+        System.out.println("FT: Start packet '" + startPacket.getSessionNumber() + "' received, ACK sent");
 
+
+        // check if file in start packet already exists locally and rename it in that case
+        // System.getProperty("user.dir") - returns String of path, where the application was executed
         File file = new File(System.getProperty("user.dir") + "\\" + startPacket.getFileName());
-
-        // check if file already exists and rename it
 
         if (file.exists()) {
             File newFile;
@@ -106,9 +115,8 @@ public class FileTransfer {
             file = newFile;
         }
 
-        DataOutputStream dataOutputStream = new DataOutputStream(new FileOutputStream(file.getPath()));
-
         // wait for data packets
+        DataOutputStream dataOutputStream = new DataOutputStream(new FileOutputStream(file.getPath()));
         SWDataPacket dataPacket = new SWDataPacket();
         CRC32 crc = new CRC32();
         int fileSize = startPacket.getFileLength();
@@ -119,36 +127,62 @@ public class FileTransfer {
 
         while (!endOfFile) {
             try {
-                dataPacket = (SWDataPacket) handler.receivePacket(dataPacket, port);
+                System.out.println("FT: Waiting for data packet...");
+                dataPacket = (SWDataPacket) handler.dataIndication(dataPacket);
             } catch (SocketTimeoutException e) {
+                handler.closeSocket();
+                System.out.println("FT: Timeout reached! Could not receive data packet!");
                 return null;
             }
 
-            if (dataPacket != null) {
-                System.out.println("FT: Data packet '" + dataPacket.getSessionNumber() + "' with " + dataPacket.getContent().length + " bytes received, ACK sent!");
-            } else {
+            if (dataPacket == null) {
+                handler.closeSocket();
+                System.out.println("FT: Error: Could not receive data packet!");
                 return null;
             }
 
+            // write data to stream
             content = dataPacket.getContent();
             bytesReceived += content.length;
+            int progress = (int) (((double) bytesReceived / (double) fileSize) * 100);
 
-            if (bytesReceived > fileSize) {
+            System.out.println("FT: Data packet '" + dataPacket.getSessionNumber() + "' received! - (" +
+                    progress + "%)");
+
+            if (bytesReceived < fileSize) {
+                // normal data packet received
+                crc.update(content, 0, content.length);
+                dataOutputStream.write(content);
+                handler.dataResponse();
+                System.out.println("FT: ACK sent!");
+            } else {
+                // last data packet received
                 ByteBuffer buffer = ByteBuffer.allocate(content.length);
                 buffer.put(content);
-                crcReceived = buffer.getInt(content.length - 4);
-                content = Arrays.copyOfRange(content, 0, content.length - 4);
-                crc.update(content, 0, content.length);
-                if (((int) crc.getValue()) != crcReceived) return null;
+                crcReceived = buffer.getInt(content.length - CRC_LENGTH);
+                content = Arrays.copyOfRange(content, 0, content.length - CRC_LENGTH);
                 dataOutputStream.write(content);
+                crc.update(content, 0, content.length);
+
+                // check if received crc is valid
+                if (((int) crc.getValue()) == crcReceived) {
+                    System.out.println("FT: Received valid CRC - file complete!");
+                    handler.dataResponse();
+                    System.out.println("FT: ACK sent!");
+                } else {
+                    System.out.println("FT: Received invalid CRC - file corrupted!");
+                    dataOutputStream.close();
+                    // delete corrupted file
+                    if (file.delete()) System.out.println("FT: Deleted corrupted file!");
+                    handler.closeSocket();
+                    return null;
+                }
                 endOfFile = true;
-            } else {
-                crc.update(content, 0, content.length);
-                dataOutputStream.write(content);
             }
         }
 
         dataOutputStream.close();
+        handler.closeSocket();
         return file.getPath();
     }
 }
