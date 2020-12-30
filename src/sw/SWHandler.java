@@ -1,5 +1,8 @@
 package sw;
 
+import sw.packets.SWAckPacket;
+import sw.packets.SWPacket;
+
 import java.io.IOException;
 import java.net.*;
 import java.util.Arrays;

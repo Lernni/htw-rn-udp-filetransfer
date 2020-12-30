@@ -1,4 +1,4 @@
-package sw;
+package sw.packets;
 
 import java.io.File;
 import java.nio.ByteBuffer;

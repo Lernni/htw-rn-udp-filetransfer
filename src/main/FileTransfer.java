@@ -7,6 +7,8 @@ import java.util.Arrays;
 import java.util.zip.CRC32;
 
 import sw.*;
+import sw.packets.SWDataPacket;
+import sw.packets.SWStartPacket;
 
 public class FileTransfer {
 
@@ -87,9 +89,7 @@ public class FileTransfer {
         do {
             try {
                 startPacket = (SWStartPacket) handler.dataIndication(new SWStartPacket());
-            } catch (SocketTimeoutException e) {
-                handler.closeSocket();
-            }
+            } catch (SocketTimeoutException ignored) {}
         } while (startPacket == null);
 
         handler.dataResponse();
@@ -106,9 +106,14 @@ public class FileTransfer {
             int duplicates = 1;
             String[] fileNameSplit = startPacket.getFileName().split("\\.", 2);
 
+            if (fileNameSplit.length < 2) {
+                newFileName = fileNameSplit[0] + "%d";
+            } else {
+                newFileName = fileNameSplit[0] + "%d." + fileNameSplit[1];
+            }
+
             do {
-                newFileName = fileNameSplit[0] + duplicates + "." + fileNameSplit[1];
-                newFile = new File(file.getParentFile(), newFileName);
+                newFile = new File(file.getParentFile(), String.format(newFileName, duplicates));
                 duplicates++;
             } while (newFile.exists());
 
