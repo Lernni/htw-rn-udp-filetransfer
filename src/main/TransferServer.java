@@ -5,11 +5,13 @@ import java.io.IOException;
 
 public class TransferServer {
     public static void main(String[] args) {
-        if (args.length > 3 || args.length < 1) {
-            System.out.println("required arguments: port [loss_rate avg_delay]");
+        if (args.length > 4 || args.length < 1) {
+            System.out.println("required arguments: port [loss_rate avg_delay 'debug']");
         } else {
             System.out.println("*** UDP File Transfer - Server ***");
 
+
+            // initialize variables
             int port;
             try {
                 port = Integer.parseInt(args[0]);
@@ -19,9 +21,12 @@ public class TransferServer {
                 return;
             }
 
+            boolean debugMode = false;
+            if (args.length == 4) debugMode = (args[3].equals("debug"));
+
             // wait for file transfer
             while (true) {
-                FileTransfer fileTransfer = new FileTransfer();
+                FileTransfer fileTransfer = new FileTransfer(debugMode);
                 try {
                     String filePath = fileTransfer.fileIndication(port);
                     if (filePath != null) {

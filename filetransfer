@@ -1,15 +1,16 @@
 #!/bin/bash
 
 USAGE_MSG="required arguments:\n
-Client: $0 client <hostname/ip> <port> <file>\nServer: $0 server <port> [<loss_rate> <avg_delay>]"
+Client: $0 client <hostname/ip> <port> <file> [debug]
+Server: $0 server <port> [<loss_rate> <avg_delay> debug]"
 
-if [ "$1" == "server" ] && [ $# -ge 2 ] && [ $# -le 4 ]
+if [ "$1" == "server" ] && [ $# -ge 2 ] && [ $# -le 5 ]
 then
   # -cp option as classpath specifies location of java program: bin
-  java -cp bin main.TransferServer "$2" "$3" "$4"
-elif [ "$1" == "client" ] && [ $# -eq 4 ]
+  java -cp bin main.TransferServer "$2" "$3" "$4" "$5"
+elif [ "$1" == "client" ] && [ $# -ge 4 ] && [ $# -le 5 ]
 then
-  java -cp bin main.TransferClient "$2" "$3" "$4"
+  java -cp bin main.TransferClient "$2" "$3" "$4" "$5"
 else
   echo -e "$USAGE_MSG"
 fi

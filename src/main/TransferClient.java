@@ -5,8 +5,8 @@ import java.net.*;
 
 public class TransferClient {
     public static void main(String[] args) throws Exception {
-        if (args.length != 3) {
-            System.out.println("required arguments: hostname/ip port file");
+        if (args.length > 4 || args.length < 3)  {
+            System.out.println("required arguments: hostname/ip port file ['debug']");
         } else {
             System.out.println("*** UDP File Transfer - Client ***\n");
 
@@ -27,8 +27,11 @@ public class TransferClient {
                 return;
             }
 
+            boolean debugMode = false;
+            if (args.length == 4) debugMode = (args[3].equals("debug"));
+
             // start file transfer
-            FileTransfer fileTransfer = new FileTransfer();
+            FileTransfer fileTransfer = new FileTransfer(debugMode);
             if (fileTransfer.fileRequest(host, port, file)) {
                 System.out.println("Success: File '" + file.getName() + "' was sent successfully to host '" +
                         host.getHostName() + "' on port " + port + "!");

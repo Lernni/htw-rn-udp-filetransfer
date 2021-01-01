@@ -14,6 +14,7 @@ public class SWHandler {
 
     private DatagramSocket socket;
     private RateMeasurement rateMeasurement;
+    private boolean debugMode;
 
     // temporary vars for dataIndication -> dataResponse
     private Short sessionNumber;
@@ -27,17 +28,20 @@ public class SWHandler {
     private int port;
 
     // constructor for client use
-    public SWHandler(InetAddress host, int port, Integer timeout, RateMeasurement rateMeasurement) throws IOException {
+    public SWHandler(InetAddress host, int port, Integer timeout, RateMeasurement rateMeasurement, boolean debugMode)
+            throws IOException {
         this.host = host;
         this.port = port;
+        this.debugMode = debugMode;
         this.rateMeasurement = rateMeasurement;
         socket = new DatagramSocket();
         if (timeout != null) socket.setSoTimeout(timeout);
     }
 
     // constructor for server use
-    public SWHandler(int port, Integer timeout) throws IOException {
+    public SWHandler(int port, Integer timeout, boolean debugMode) throws IOException {
         this.port = port;
+        this.debugMode = debugMode;
         socket = new DatagramSocket(port);
         if (timeout != null) socket.setSoTimeout(timeout);
     }
@@ -56,7 +60,8 @@ public class SWHandler {
         while (true) {
             // send datagram
             socket.send(datagramSendPacket);
-            System.out.println("SW: >>> sent packet to host - (" + datagramSendPacket.getLength() + " Bytes)");
+            if (debugMode) System.out.println("SW: >>> sent packet to host - (" +
+                    datagramSendPacket.getLength() + " Bytes)");
 
             // receive datagram
             try {
@@ -64,7 +69,7 @@ public class SWHandler {
                     // wait for ACK - timeout starts
                     socket.receive(datagramReceivePacket);
                     rateMeasurement.addSize(datagramSendPacket.getLength());
-                    System.out.println("SW: <<< received packet from host - (" +
+                    if (debugMode) System.out.println("SW: <<< received packet from host - (" +
                             datagramReceivePacket.getLength() + " Bytes)");
 
                     // check if received packet is valid and if the packet number is correct
@@ -105,7 +110,8 @@ public class SWHandler {
         DatagramPacket datagramReceivePacket = new DatagramPacket(receiveData, receiveData.length);
 
         socket.receive(datagramReceivePacket);
-        System.out.println("SW: <<< received packet from client - (" + datagramReceivePacket.getLength() + " Bytes)");
+        if (debugMode) System.out.println("SW: <<< received packet from client - (" +
+                datagramReceivePacket.getLength() + " Bytes)");
 
         // check if received packet is valid
         receiveData = Arrays.copyOfRange(receiveData, 0, datagramReceivePacket.getLength());
@@ -131,7 +137,8 @@ public class SWHandler {
 
         // send datagram
         socket.send(datagramSendPacket);
-        System.out.println("SW: >>> sent ACK packet to client - (" + datagramSendPacket.getLength() + " Bytes)");
+        if (debugMode) System.out.println("SW: >>> sent ACK packet to client - (" +
+                datagramSendPacket.getLength() + " Bytes)");
 
     }
 

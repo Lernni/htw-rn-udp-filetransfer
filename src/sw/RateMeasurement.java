@@ -7,7 +7,6 @@ import java.util.TimerTask;
 
 public class RateMeasurement {
 
-    private int size = 0;
     private Long minRate = null;
     private Long maxRate = null;
     private Long avgRate = null;
@@ -16,14 +15,23 @@ public class RateMeasurement {
     private Timer timer;
     private String printFormat;
     private int period;
+    private int sizeIncrement = 0;
+    private int sizeMeasured = 0;
+    private int fileSize;
+    private final String UNIT_BPS = "B/s";
+    private final String UNIT_BYTES = "B";
 
     public RateMeasurement(String printFormat, int period) {
         this.printFormat = printFormat;
         this.period = period;
     }
 
+    public void setFileSize(int fileSize) {
+        this.fileSize = fileSize;
+    }
+
     public void addSize(int size) {
-        this.size += size;
+        this.sizeIncrement += size;
     }
 
     // before file request
@@ -32,8 +40,9 @@ public class RateMeasurement {
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                currentRate = (long) size / (period / 1000);
-                size = 0;
+                currentRate = (long) sizeIncrement / (period / 1000);
+                sizeMeasured += sizeIncrement;
+                sizeIncrement = 0;
 
                 if (minRate == null) minRate = currentRate;
                 if (maxRate == null) maxRate = currentRate;
@@ -54,30 +63,35 @@ public class RateMeasurement {
     // after file request
     public void stop() {
         timer.cancel();
-        size = 0;
+        sizeMeasured += sizeIncrement;
+        sizeIncrement = 0;
         System.out.printf((printFormat) + "%n", getResults());
     }
 
     private String getRate() {
-        return "Data rate: " + getReadableByte(currentRate);
+        int progress = (int) (((double) sizeMeasured / (double) fileSize) * 100);
+        return "Data rate: " + getReadableByte(currentRate, UNIT_BPS) +
+                " | " + getReadableByte(sizeMeasured, UNIT_BYTES) +
+                " / " + getReadableByte(fileSize, UNIT_BYTES) +
+                " | " + progress + " %";
     }
 
     private String getResults() {
-        return "Data rate: AVG: " + getReadableByte(avgRate) +
-                " | MIN: " + getReadableByte(minRate) +
-                " | MAX: " + getReadableByte(maxRate);
+        return "Data rate: AVG: " + getReadableByte(avgRate, UNIT_BPS) +
+                " | MIN: " + getReadableByte(minRate, UNIT_BPS) +
+                " | MAX: " + getReadableByte(maxRate, UNIT_BPS);
     }
 
     // source of this function: https://stackoverflow.com/questions/3758606/how-can-i-convert-byte-size-into-a-human-readable-format-in-java
-    private String getReadableByte(long bytes) {
+    public String getReadableByte(long bytes, String unit) {
         if (-1000 < bytes && bytes < 1000) {
-            return bytes + " B";
+            return bytes + " " + unit;
         }
         CharacterIterator ci = new StringCharacterIterator("KMGTPE");
         while (bytes <= -999_950 || bytes >= 999_950) {
             bytes /= 1000;
             ci.next();
         }
-        return String.format("%.1f %cB", bytes / 1000.0, ci.current());
+        return String.format("%.1f %c%s", bytes / 1000.0, ci.current(), unit);
     }
 }

@@ -3,6 +3,8 @@ package main;
 import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
+import java.text.CharacterIterator;
+import java.text.StringCharacterIterator;
 import java.util.Arrays;
 import java.util.zip.CRC32;
 
@@ -14,18 +16,21 @@ public class FileTransfer {
 
     private final int CRC_LENGTH = 4;
     private final int SOCKET_TIMEOUT = 10000;
+    private boolean debugMode;
 
-    public FileTransfer() { }
+    public FileTransfer(boolean debugMode) {
+        this.debugMode = debugMode;
+    }
 
     public boolean fileRequest(InetAddress host, int port, File file) throws IOException {
         // prepare stop & wait handler and rate measurement
         RateMeasurement rateMeasurement = new RateMeasurement("FT: %s", 1000);
-        SWHandler handler = new SWHandler(host, port, SOCKET_TIMEOUT, rateMeasurement);
+        SWHandler handler = new SWHandler(host, port, SOCKET_TIMEOUT, rateMeasurement, debugMode);
 
         // send start packet & receive answer
         SWStartPacket startPacket = new SWStartPacket(file);
         if (handler.dataRequest(startPacket)) {
-            System.out.println("FT: Start packet '" + startPacket.getSessionNumber() + "' sent, received ACK");
+            System.out.println("FT: Start packet 'SN: " + startPacket.getSessionNumber() + "' sent, received ACK");
         } else {
             handler.closeSocket();
             System.out.println("FT: Error: Start packet '" + startPacket.getSessionNumber() +
@@ -35,6 +40,9 @@ public class FileTransfer {
 
         // state: connection to server established
 
+        // start rate measurement
+        int fileSize = startPacket.getFileLength();
+        rateMeasurement.setFileSize(fileSize);
         rateMeasurement.start();
 
         // prepare data packets
@@ -44,18 +52,23 @@ public class FileTransfer {
         byte packetNumber = startPacket.getPacketNumber();
         CRC32 crc = new CRC32();
         boolean endOfFile = false;
+        int bytesSent = 0;
+        int bytesRead;
+        byte[] data;
 
         while (!endOfFile) {
             // read data from file
-            byte[] data = new byte[dataPacket.MAX_CONTENT_SIZE];
-            int bytesRead = dataInputStream.read(data);
+            data = new byte[dataPacket.MAX_CONTENT_SIZE];
+            bytesRead = dataInputStream.read(data);
 
             // update crc over every packet, as long as bytes are read
-                if (bytesRead == -1) {
+            if (bytesRead == -1) {
                 bytesRead = 0;
             } else {
                 crc.update(data, 0, bytesRead);
             }
+
+            if (debugMode) bytesSent += bytesRead;
 
             // check if crc must be included
             if (bytesRead <= dataPacket.MAX_CONTENT_SIZE - CRC_LENGTH) {
@@ -73,10 +86,12 @@ public class FileTransfer {
             // send data packet
             dataPacket = new SWDataPacket(sessionNumber, packetNumber, data);
             if (handler.dataRequest(dataPacket)) {
-                System.out.println("FT: Data packet '" + dataPacket.getSessionNumber() + "' sent, received ACK");
+                if (debugMode) {
+                    int progress = (int) (((double) bytesSent / (double) fileSize) * 100);
+                    System.out.println("FT: Data packet sent, received ACK | " + progress + "%");
+                }
             } else {
-                System.out.println("FT: Error: Data packet '" + dataPacket.getSessionNumber() +
-                        "' could not be sent and/or verified!");
+                System.out.println("FT: Error: Data packet could not be sent and/or verified!");
                 rateMeasurement.stop();
                 dataInputStream.close();
                 handler.closeSocket();
@@ -94,7 +109,7 @@ public class FileTransfer {
     }
 
     public String fileIndication(int port) throws IOException {
-        SWHandler handler = new SWHandler(port, SOCKET_TIMEOUT);
+        SWHandler handler = new SWHandler(port, SOCKET_TIMEOUT, debugMode);
 
         // wait for start packet
         SWStartPacket startPacket = null;
@@ -107,7 +122,7 @@ public class FileTransfer {
         } while (startPacket == null);
 
         handler.dataResponse();
-        System.out.println("FT: Start packet '" + startPacket.getSessionNumber() + "' received, ACK sent");
+        System.out.println("FT: Start packet 'SN: " + startPacket.getSessionNumber() + "' received, ACK sent");
 
 
         // check if file in start packet already exists locally and rename it in that case
@@ -146,16 +161,20 @@ public class FileTransfer {
 
         while (!endOfFile) {
             try {
-                System.out.println("FT: Waiting for data packet...");
+                if (debugMode) System.out.println("FT: Waiting for data packet...");
                 dataPacket = (SWDataPacket) handler.dataIndication(dataPacket);
             } catch (SocketTimeoutException e) {
                 handler.closeSocket();
+                dataOutputStream.close();
+                if (file.delete()) System.out.println("FT: Deleted corrupted file!");
                 System.out.println("FT: Timeout reached! Could not receive data packet!");
                 return null;
             }
 
             if (dataPacket == null) {
                 handler.closeSocket();
+                dataOutputStream.close();
+                if (file.delete()) System.out.println("FT: Deleted corrupted file!");
                 System.out.println("FT: Error: Could not receive data packet!");
                 return null;
             }
@@ -164,16 +183,14 @@ public class FileTransfer {
             content = dataPacket.getContent();
             bytesReceived += content.length;
             int progress = (int) (((double) bytesReceived / (double) fileSize) * 100);
-
-            System.out.println("FT: Data packet '" + dataPacket.getSessionNumber() + "' received! - (" +
-                    progress + "%)");
+            System.out.println("FT: Data packet received! | " + progress + "%");
 
             if (bytesReceived < fileSize) {
                 // normal data packet received
                 crc.update(content, 0, content.length);
                 dataOutputStream.write(content);
                 handler.dataResponse();
-                System.out.println("FT: ACK sent!");
+                if (debugMode) System.out.println("FT: ACK sent!");
             } else {
                 // last data packet received
                 ByteBuffer buffer = ByteBuffer.allocate(content.length);
@@ -187,11 +204,10 @@ public class FileTransfer {
                 if (((int) crc.getValue()) == crcReceived) {
                     System.out.println("FT: Received valid CRC - file complete!");
                     handler.dataResponse();
-                    System.out.println("FT: ACK sent!");
+                    if (debugMode) System.out.println("FT: ACK sent!");
                 } else {
                     System.out.println("FT: Received invalid CRC - file corrupted!");
                     dataOutputStream.close();
-                    // delete corrupted file
                     if (file.delete()) System.out.println("FT: Deleted corrupted file!");
                     handler.closeSocket();
                     return null;
