@@ -18,8 +18,11 @@ public class FileTransfer {
     public FileTransfer() { }
 
     public boolean fileRequest(InetAddress host, int port, File file) throws IOException {
+        // prepare stop & wait handler and rate measurement
+        RateMeasurement rateMeasurement = new RateMeasurement("FT: %s", 1000);
+        SWHandler handler = new SWHandler(host, port, SOCKET_TIMEOUT, rateMeasurement);
+
         // send start packet & receive answer
-        SWHandler handler = new SWHandler(host, port, SOCKET_TIMEOUT);
         SWStartPacket startPacket = new SWStartPacket(file);
         if (handler.dataRequest(startPacket)) {
             System.out.println("FT: Start packet '" + startPacket.getSessionNumber() + "' sent, received ACK");
@@ -29,6 +32,10 @@ public class FileTransfer {
                     "' could not be sent and/or verified!");
             return false;
         }
+
+        // state: connection to server established
+
+        rateMeasurement.start();
 
         // prepare data packets
         DataInputStream dataInputStream = new DataInputStream(new FileInputStream(file.getPath()));
@@ -44,7 +51,7 @@ public class FileTransfer {
             int bytesRead = dataInputStream.read(data);
 
             // update crc over every packet, as long as bytes are read
-            if (bytesRead == -1) {
+                if (bytesRead == -1) {
                 bytesRead = 0;
             } else {
                 crc.update(data, 0, bytesRead);
@@ -66,14 +73,21 @@ public class FileTransfer {
             // send data packet
             dataPacket = new SWDataPacket(sessionNumber, packetNumber, data);
             if (handler.dataRequest(dataPacket)) {
-                System.out.println("FT: Data packet '" + startPacket.getSessionNumber() + "' sent, received ACK");
+                System.out.println("FT: Data packet '" + dataPacket.getSessionNumber() + "' sent, received ACK");
             } else {
-                System.out.println("FT: Error: Data packet '" + startPacket.getSessionNumber() +
+                System.out.println("FT: Error: Data packet '" + dataPacket.getSessionNumber() +
                         "' could not be sent and/or verified!");
+                rateMeasurement.stop();
+                dataInputStream.close();
+                handler.closeSocket();
                 return false;
             }
         }
 
+        // state: file request successful
+
+        // end file request
+        rateMeasurement.stop();
         dataInputStream.close();
         handler.closeSocket();
         return true;

@@ -12,7 +12,8 @@ public class SWHandler {
     private final int MAX_TIMEOUT_RETRIES = 10;
     private final int MAX_EXPECTED_BYTES = 2000;
 
-    public DatagramSocket socket;
+    private DatagramSocket socket;
+    private RateMeasurement rateMeasurement;
 
     // temporary vars for dataIndication -> dataResponse
     private Short sessionNumber;
@@ -26,9 +27,10 @@ public class SWHandler {
     private int port;
 
     // constructor for client use
-    public SWHandler(InetAddress host, int port, Integer timeout) throws IOException {
+    public SWHandler(InetAddress host, int port, Integer timeout, RateMeasurement rateMeasurement) throws IOException {
         this.host = host;
         this.port = port;
+        this.rateMeasurement = rateMeasurement;
         socket = new DatagramSocket();
         if (timeout != null) socket.setSoTimeout(timeout);
     }
@@ -61,6 +63,7 @@ public class SWHandler {
                 while (true) {
                     // wait for ACK - timeout starts
                     socket.receive(datagramReceivePacket);
+                    rateMeasurement.addSize(datagramSendPacket.getLength());
                     System.out.println("SW: <<< received packet from host - (" +
                             datagramReceivePacket.getLength() + " Bytes)");
 
@@ -75,7 +78,7 @@ public class SWHandler {
                     }
                 }
 
-                // valid ack received, close data request
+                // state: valid ack received, close data request
                 break;
 
             } catch (SocketTimeoutException e) {
