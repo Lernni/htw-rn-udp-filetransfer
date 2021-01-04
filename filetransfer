@@ -7,10 +7,11 @@ Server: $0 server <port> [<loss_rate> <avg_delay> debug]"
 if [ "$1" == "server" ] && [ $# -ge 2 ] && [ $# -le 5 ]
 then
   # -cp option as classpath specifies location of java program: bin
-  java -cp bin main.TransferServer "$2" "$3" "$4" "$5"
+  # putting double quotes around the arguments results in weird args.length behavior in java
+  java -cp bin main.TransferServer $2 $3 $4 $5
 elif [ "$1" == "client" ] && [ $# -ge 4 ] && [ $# -le 5 ]
 then
-  java -cp bin main.TransferClient "$2" "$3" "$4" "$5"
+  java -cp bin main.TransferClient $2 $3 $4 $5
 else
   echo -e "$USAGE_MSG"
 fi

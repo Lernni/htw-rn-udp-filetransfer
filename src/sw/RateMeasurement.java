@@ -82,7 +82,8 @@ public class RateMeasurement {
                 " | MAX: " + getReadableByte(maxRate, UNIT_BPS);
     }
 
-    // source of this function: https://stackoverflow.com/questions/3758606/how-can-i-convert-byte-size-into-a-human-readable-format-in-java
+    // source of this function:
+    // https://stackoverflow.com/questions/3758606/how-can-i-convert-byte-size-into-a-human-readable-format-in-java
     public String getReadableByte(long bytes, String unit) {
         if (-1000 < bytes && bytes < 1000) {
             return bytes + " " + unit;

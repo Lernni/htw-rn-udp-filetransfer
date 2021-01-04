@@ -3,8 +3,6 @@ package main;
 import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
-import java.text.CharacterIterator;
-import java.text.StringCharacterIterator;
 import java.util.Arrays;
 import java.util.zip.CRC32;
 
@@ -15,17 +13,29 @@ import sw.packets.SWStartPacket;
 public class FileTransfer {
 
     private final int CRC_LENGTH = 4;
-    private final int SOCKET_TIMEOUT = 10000;
-    private boolean debugMode;
+    private final int SERVER_TIMEOUT = 20000;
+    private final int CLIENT_TIMEOUT = 10000;
 
+    private boolean debugMode;
+    private double lossRate;
+    private int averageDelay;
+
+    // for client
     public FileTransfer(boolean debugMode) {
         this.debugMode = debugMode;
+    }
+
+    // for server
+    public FileTransfer(double lossRate, int averageDelay, boolean debugMode) {
+        this.debugMode = debugMode;
+        this.lossRate = lossRate;
+        this.averageDelay = averageDelay;
     }
 
     public boolean fileRequest(InetAddress host, int port, File file) throws IOException {
         // prepare stop & wait handler and rate measurement
         RateMeasurement rateMeasurement = new RateMeasurement("FT: %s", 1000);
-        SWHandler handler = new SWHandler(host, port, SOCKET_TIMEOUT, rateMeasurement, debugMode);
+        SWHandler handler = new SWHandler(host, port, CLIENT_TIMEOUT, rateMeasurement, debugMode);
 
         // send start packet & receive answer
         SWStartPacket startPacket = new SWStartPacket(file);
@@ -109,7 +119,7 @@ public class FileTransfer {
     }
 
     public String fileIndication(int port) throws IOException {
-        SWHandler handler = new SWHandler(port, SOCKET_TIMEOUT, debugMode);
+        SWHandler handler = new SWHandler(port, lossRate, averageDelay, SERVER_TIMEOUT, debugMode);
 
         // wait for start packet
         SWStartPacket startPacket = null;
@@ -121,8 +131,8 @@ public class FileTransfer {
             } catch (SocketTimeoutException ignored) {}
         } while (startPacket == null);
 
+        System.out.println("FT: Start packet 'SN: " + startPacket.getSessionNumber() + "' received. Send ACK...");
         handler.dataResponse();
-        System.out.println("FT: Start packet 'SN: " + startPacket.getSessionNumber() + "' received, ACK sent");
 
 
         // check if file in start packet already exists locally and rename it in that case
@@ -166,16 +176,8 @@ public class FileTransfer {
             } catch (SocketTimeoutException e) {
                 handler.closeSocket();
                 dataOutputStream.close();
-                if (file.delete()) System.out.println("FT: Deleted corrupted file!");
                 System.out.println("FT: Timeout reached! Could not receive data packet!");
-                return null;
-            }
-
-            if (dataPacket == null) {
-                handler.closeSocket();
-                dataOutputStream.close();
                 if (file.delete()) System.out.println("FT: Deleted corrupted file!");
-                System.out.println("FT: Error: Could not receive data packet!");
                 return null;
             }
 
@@ -189,8 +191,7 @@ public class FileTransfer {
                 // normal data packet received
                 crc.update(content, 0, content.length);
                 dataOutputStream.write(content);
-                handler.dataResponse();
-                if (debugMode) System.out.println("FT: ACK sent!");
+                if (handler.dataResponse() && debugMode) System.out.println("FT: ACK sent!");
             } else {
                 // last data packet received
                 ByteBuffer buffer = ByteBuffer.allocate(content.length);
@@ -203,8 +204,7 @@ public class FileTransfer {
                 // check if received crc is valid
                 if (((int) crc.getValue()) == crcReceived) {
                     System.out.println("FT: Received valid CRC - file complete!");
-                    handler.dataResponse();
-                    if (debugMode) System.out.println("FT: ACK sent!");
+                    if (handler.dataResponse() && debugMode) System.out.println("FT: ACK sent!");
                 } else {
                     System.out.println("FT: Received invalid CRC - file corrupted!");
                     dataOutputStream.close();
