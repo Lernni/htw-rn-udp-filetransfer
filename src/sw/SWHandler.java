@@ -16,6 +16,7 @@ public class SWHandler {
 
     private DatagramSocket socket;
     private RateMeasurement rateMeasurement;
+    private RTOCalc rtoCalc;
     private boolean debugMode;
 
     // temporary vars for dataIndication -> dataResponse
@@ -24,6 +25,7 @@ public class SWHandler {
     private InetAddress clientHost;
     private int clientPort;
 
+    // vars for channel simulation of server
     double lossRate;
     int averageDelay;
     Random random;
@@ -32,28 +34,30 @@ public class SWHandler {
     // or localhost (host = null) and serverPort if dataIndication, dataResponse
     private InetAddress host;
     private int port;
+    private int timeout;
 
     // constructor for client use
-    public SWHandler(InetAddress host, int port, Integer timeout, RateMeasurement rateMeasurement, boolean debugMode)
+    public SWHandler(InetAddress host, int port, int timeout, RateMeasurement rateMeasurement, boolean debugMode)
             throws IOException {
         this.host = host;
         this.port = port;
         this.debugMode = debugMode;
+        this.timeout = timeout;
         this.rateMeasurement = rateMeasurement;
         socket = new DatagramSocket();
-        if (timeout != null) socket.setSoTimeout(timeout);
+        rtoCalc = new RTOCalc(timeout);
     }
 
     // constructor for server use
-    public SWHandler(int port, double lossRate, int averageDelay, Integer timeout, boolean debugMode)
-            throws IOException {
+    public SWHandler(int port, double lossRate, int averageDelay, int timeout, boolean debugMode) throws IOException {
         this.port = port;
         this.lossRate = lossRate;
         this.averageDelay = averageDelay;
         this.debugMode = debugMode;
+        this.timeout = timeout;
         random = new Random();
         socket = new DatagramSocket(port);
-        if (timeout != null) socket.setSoTimeout(timeout);
+        socket.setSoTimeout(timeout);
     }
 
     public boolean dataRequest(SWPacket packet) throws IOException {
@@ -69,6 +73,7 @@ public class SWHandler {
         int timeoutRetries = 0;
         while (true) {
             // send datagram
+            rtoCalc.startTime();
             socket.send(datagramSendPacket);
             if (debugMode) System.out.println("SW: >>> sent packet to host - (" +
                     datagramSendPacket.getLength() + " Bytes) (PN: " + packet.getPacketNumber() + ")");
@@ -77,7 +82,11 @@ public class SWHandler {
             try {
                 while (true) {
                     // wait for ACK - timeout starts
-                    if (debugMode) System.out.println("SW: Waiting for ACK from server...");
+                    if (debugMode) {
+                        System.out.println("SW: Waiting for ACK from server...");
+                        System.out.println("SW: Set timeout to " + rtoCalc.getRTO() + " ms");
+                    }
+                    socket.setSoTimeout(rtoCalc.getRTO());
                     socket.receive(datagramReceivePacket);
                     if (debugMode) System.out.println("SW: <<< received packet from host - (" +
                             datagramReceivePacket.getLength() + " Bytes)");
@@ -87,6 +96,7 @@ public class SWHandler {
                     if (ackPacket.setData(datagramReceivePacket.getData())) {
                         if (debugMode) System.out.println("SW: Received ACK: PN: " + ackPacket.getPacketNumber());
                         if (packet.getPacketNumber() == ackPacket.getPacketNumber()) {
+                            rtoCalc.stopTime();
                             rateMeasurement.addSize(datagramSendPacket.getLength());
                             break;
                         } else {
@@ -100,7 +110,6 @@ public class SWHandler {
 
             } catch (SocketTimeoutException e) {
                 // timeout reached
-
                 timeoutRetries++;
                 if (timeoutRetries != MAX_TIMEOUT_RETRIES) {
                     System.out.println("SW: No answer from host after " + timeoutRetries +

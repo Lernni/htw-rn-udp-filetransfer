@@ -13,8 +13,8 @@ import sw.packets.SWStartPacket;
 public class FileTransfer {
 
     private final int CRC_LENGTH = 4;
-    private final int SERVER_TIMEOUT = 20000;
-    private final int CLIENT_TIMEOUT = 10000;
+    private final int SERVER_TIMEOUT = 10000;
+    private final int CLIENT_TIMEOUT = 1000; // start value
 
     private boolean debugMode;
     private double lossRate;
