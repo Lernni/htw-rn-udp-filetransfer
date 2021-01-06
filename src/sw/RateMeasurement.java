@@ -18,7 +18,7 @@ public class RateMeasurement {
     private int period;
     private int sizeIncrement = 0;
     private int sizeMeasured = 0;
-    private int fileSize;
+    private long fileSize;
     private final String UNIT_BPS = "B/s";
     private final String UNIT_BYTES = "B";
 
@@ -28,7 +28,7 @@ public class RateMeasurement {
         this.period = period;
     }
 
-    public void setFileSize(int fileSize) {
+    public void setFileSize(long fileSize) {
         this.fileSize = fileSize;
     }
 

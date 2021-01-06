@@ -51,7 +51,7 @@ public class FileTransfer {
         // state: connection to server established
 
         // start rate measurement
-        int fileSize = startPacket.getFileLength();
+        long fileSize = startPacket.getFileLength();
         rateMeasurement.setFileSize(fileSize);
         rateMeasurement.start();
 
@@ -163,7 +163,7 @@ public class FileTransfer {
         DataOutputStream dataOutputStream = new DataOutputStream(new FileOutputStream(file.getPath()));
         SWDataPacket dataPacket = new SWDataPacket();
         CRC32 crc = new CRC32();
-        int fileSize = startPacket.getFileLength();
+        long fileSize = startPacket.getFileLength();
         int bytesReceived = 0;
         int crcReceived;
         byte[] content;

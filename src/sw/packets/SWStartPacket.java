@@ -11,20 +11,20 @@ import java.util.zip.CRC32;
 * 2 Byte - session number
 * 1 Byte - packet number
 * 5 Byte - start tag
-* 4 Byte - file length
+* 8 Byte - file length
 * 2 Byte - file name length
 * 0-255 Byte - file name
 * 4 Byte - CRC
 * */
 
 public class SWStartPacket extends SWPacket {
-    public final int PACKET_SIZE = 273;
+    public final int PACKET_SIZE = 277;
     private final int SN_RANGE = 65536; // possible numbers: 0 - 65535 --> range of values: 2^16-1
     private final int FILE_NAME_SIZE = 255;
     private final int FILE_LENGTH_INDEX = 8;
-    private final int FILE_NAME_LENGTH_INDEX = 12;
+    private final int FILE_NAME_LENGTH_INDEX = 16;
     private final String startTag = "Start";
-    private Integer fileLength = 0;
+    private Long fileLength = 0L;
     private Integer crcValue = 0;
     private Short fileNameLength = 0;
     private String fileName = null;
@@ -35,7 +35,7 @@ public class SWStartPacket extends SWPacket {
         // prepare vars
         Random r = new Random();
         sessionNumber = (short) r.nextInt(SN_RANGE);
-        fileLength = (int) file.length();
+        fileLength = file.length();
         fileName = file.getName();
         byte[] fileNameBytes = fileName.getBytes(StandardCharsets.UTF_8);
         if (fileNameBytes.length > FILE_NAME_SIZE) {
@@ -50,22 +50,14 @@ public class SWStartPacket extends SWPacket {
         buffer.putShort(sessionNumber); // 16 bit
         buffer.put(packetNumber); // 8 bit
         buffer.put(startTag.getBytes(StandardCharsets.UTF_8)); // 5 byte "Start"
-        buffer.putInt(fileLength); // 4 byte file length
-        fileNameLength = (short) file.getName().length();
+        buffer.putLong(fileLength); // 4 byte file length
+        fileNameLength = (short) (file.getName().length() & 0xffff);
         buffer.putShort(fileNameLength); // 2 byte file name length
         buffer.put(fileNameBytes); // 0 - 255 byte file name
 
-        // prepare crc 32
-        crc = new CRC32();
-        buffer.flip(); // read mode
-        crc.update(buffer); // create crc
-        buffer.flip(); // write mode
-
-        // configure buffer to not override existing data
-        buffer.position(buffer.limit());
-        buffer.limit(buffer.capacity());
-
         // write crc
+        crc = new CRC32();
+        crc.update(Arrays.copyOfRange(buffer.array(), 0, buffer.position())); // create crc
         crcValue = (int) crc.getValue();
         buffer.putInt(crcValue); // 4 byte crc value
     }
@@ -95,14 +87,14 @@ public class SWStartPacket extends SWPacket {
 
         // write buffer data in vars
         sessionNumber = buffer.getShort(SN_INDEX);
-        fileLength = buffer.getInt(FILE_LENGTH_INDEX);
+        fileLength = buffer.getLong(FILE_LENGTH_INDEX);
         byte[] fileNameBytes = Arrays.copyOfRange(buffer.array(), headerLength, crcIndex);
         fileName = new String(fileNameBytes, StandardCharsets.UTF_8);
 
         return true;
     }
 
-    public int getFileLength() {
+    public long getFileLength() {
         return fileLength;
     }
 
