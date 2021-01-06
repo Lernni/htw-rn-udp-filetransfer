@@ -40,10 +40,10 @@ public class FileTransfer {
         // send start packet & receive answer
         SWStartPacket startPacket = new SWStartPacket(file);
         if (handler.dataRequest(startPacket)) {
-            System.out.println("FT: Start packet 'SN: " + startPacket.getSessionNumber() + "' sent, received ACK");
+            System.out.println("FT: Start packet 'SN: " + startPacket.getUnsignedSessionNumber() + "' sent, received ACK");
         } else {
             handler.closeSocket();
-            System.out.println("FT: Error: Start packet '" + startPacket.getSessionNumber() +
+            System.out.println("FT: Error: Start packet '" + startPacket.getUnsignedSessionNumber() +
                     "' could not be sent and/or verified!");
             return false;
         }
@@ -131,7 +131,7 @@ public class FileTransfer {
             } catch (SocketTimeoutException ignored) {}
         } while (startPacket == null);
 
-        System.out.println("FT: Start packet 'SN: " + startPacket.getSessionNumber() + "' received. Send ACK...");
+        System.out.println("FT: Start packet 'SN: " + startPacket.getUnsignedSessionNumber() + "' received. Send ACK...");
         handler.dataResponse();
 
 

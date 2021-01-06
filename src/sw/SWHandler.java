@@ -3,7 +3,6 @@ package sw;
 import sw.packets.SWAckPacket;
 import sw.packets.SWPacket;
 
-import java.awt.*;
 import java.io.IOException;
 import java.net.*;
 import java.util.Arrays;
@@ -12,7 +11,7 @@ import java.util.Random;
 public class SWHandler {
 
     private final int MAX_TIMEOUT_RETRIES = 10;
-    private final int MAX_EXPECTED_BYTES = 2000;
+    private final int MAX_EXPECTED_BYTES = 65507; // Max: 65535 Byte - 8 Byte UDP header - 20 Byte IP
 
     private DatagramSocket socket;
     private RateMeasurement rateMeasurement;

@@ -7,11 +7,11 @@ import java.util.Arrays;
 * Data Packet:
 * 2 Byte - session number
 * 1 Byte - packet number
-* 4-~1400 Byte - data (crc included)
+* 4-~1400 Byte - data (crc included in last packet)
 * */
 
 public class SWDataPacket extends SWPacket {
-    public static final int PACKET_SIZE = 1400; // make it var
+    public static final int PACKET_SIZE = 1350; // make it var
     public final int HEADER_SIZE = this.sessionNumber.BYTES + this.packetNumber.BYTES;
     public final int MAX_CONTENT_SIZE = PACKET_SIZE - HEADER_SIZE;
 

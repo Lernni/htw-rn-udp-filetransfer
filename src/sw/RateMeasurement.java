@@ -14,6 +14,7 @@ public class RateMeasurement {
 
     private Timer timer;
     private String printFormat;
+    private boolean timerRunning = false;
     private int period;
     private int sizeIncrement = 0;
     private int sizeMeasured = 0;
@@ -22,6 +23,7 @@ public class RateMeasurement {
     private final String UNIT_BYTES = "B";
 
     public RateMeasurement(String printFormat, int period) {
+        timer = new Timer();
         this.printFormat = printFormat;
         this.period = period;
     }
@@ -31,12 +33,11 @@ public class RateMeasurement {
     }
 
     public void addSize(int size) {
-        this.sizeIncrement += size;
+        if (timerRunning) this.sizeIncrement += size;
     }
 
     // before file request
     public void start() {
-        timer = new Timer();
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
@@ -58,10 +59,12 @@ public class RateMeasurement {
                 System.out.printf((printFormat) + "%n", getRate());
             }
         }, 0, period);
+        timerRunning = true;
     }
 
     // after file request
     public void stop() {
+        timerRunning = false;
         timer.cancel();
         sizeMeasured += sizeIncrement;
         sizeIncrement = 0;

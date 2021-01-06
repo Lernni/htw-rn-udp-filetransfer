@@ -30,6 +30,10 @@ public abstract class SWPacket {
         return sessionNumber;
     }
 
+    public int getUnsignedSessionNumber() {
+        return sessionNumber & 0xffff;
+    }
+
     public byte getPacketNumber() {
         return packetNumber;
     }
