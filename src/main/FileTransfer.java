@@ -134,7 +134,6 @@ public class FileTransfer {
         System.out.println("FT: Start packet 'SN: " + startPacket.getUnsignedSessionNumber() + "' received. Send ACK...");
         handler.dataResponse();
 
-
         // check if file in start packet already exists locally and rename it in that case
         // System.getProperty("user.dir") - returns String of path, where the application was executed
         File file = new File(System.getProperty("user.dir") + "\\" + startPacket.getFileName());
@@ -203,10 +202,14 @@ public class FileTransfer {
 
                 // check if received crc is valid
                 if (((int) crc.getValue()) == crcReceived) {
-                    System.out.println("FT: Received valid CRC - file complete!");
+                    System.out.println("FT: Received valid CRC - file complete!\n" +
+                            "Calculated CRC: " + Integer.toHexString((int) crc.getValue()) + "\n" +
+                            "Received CRC: " + Integer.toHexString(crcReceived));
                     if (handler.dataResponse() && debugMode) System.out.println("FT: ACK sent!");
                 } else {
-                    System.out.println("FT: Received invalid CRC - file corrupted!");
+                    System.out.println("FT: Received invalid CRC - file corrupted!\n" +
+                            "Calculated CRC: " + Integer.toHexString((int) crc.getValue()) + "\n" +
+                            "Received CRC: " + Integer.toHexString(crcReceived));
                     dataOutputStream.close();
                     if (file.delete()) System.out.println("FT: Deleted corrupted file!");
                     handler.closeSocket();

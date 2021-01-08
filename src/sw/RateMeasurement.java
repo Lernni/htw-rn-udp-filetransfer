@@ -87,7 +87,7 @@ public class RateMeasurement {
 
     // source of this function:
     // https://stackoverflow.com/questions/3758606/how-can-i-convert-byte-size-into-a-human-readable-format-in-java
-    public String getReadableByte(long bytes, String unit) {
+    public static String getReadableByte(long bytes, String unit) {
         if (-1000 < bytes && bytes < 1000) {
             return bytes + " " + unit;
         }

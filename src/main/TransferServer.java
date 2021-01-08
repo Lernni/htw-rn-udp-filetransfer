@@ -1,10 +1,13 @@
 package main;
 
+import sw.RateMeasurement;
+
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
 
 public class TransferServer {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         final String requiredArgs = "required arguments: port [loss_rate avg_delay] ['debug']";
 
         if (args.length > 4 || args.length < 1) {
@@ -36,8 +39,18 @@ public class TransferServer {
                 return;
             }
 
+            // print server info
+            InetAddress server = InetAddress.getLocalHost();
+            System.out.println("Server Info:\n" +
+                    "Host Name: " + server.getHostName() + "\n" +
+                    "IP Address: " + server.getHostAddress() + "\n" +
+                    "Port: " + port + "\n");
+
             // wait for file transfer
             while (true) {
+
+                System.out.println("**********************************");
+
                 FileTransfer fileTransfer = new FileTransfer(lossRate, averageDelay, debugMode);
                 try {
                     String filePath = fileTransfer.fileIndication(port);

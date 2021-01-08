@@ -50,8 +50,8 @@ public class SWStartPacket extends SWPacket {
         buffer.putShort(sessionNumber); // 16 bit
         buffer.put(packetNumber); // 8 bit
         buffer.put(startTag.getBytes(StandardCharsets.UTF_8)); // 5 byte "Start"
-        buffer.putLong(fileLength); // 4 byte file length
-        fileNameLength = (short) (file.getName().length() & 0xffff);
+        buffer.putLong(fileLength); // 8 byte file length
+        fileNameLength = (short) file.getName().length();
         buffer.putShort(fileNameLength); // 2 byte file name length
         buffer.put(fileNameBytes); // 0 - 255 byte file name
 

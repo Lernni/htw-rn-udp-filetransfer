@@ -1,5 +1,7 @@
 package main;
 
+import sw.RateMeasurement;
+
 import java.io.*;
 import java.net.*;
 
@@ -29,6 +31,21 @@ public class TransferClient {
 
             boolean debugMode = false;
             if (args.length == 4) debugMode = (args[3].equals("debug"));
+
+            // print client info
+            InetAddress client = InetAddress.getLocalHost();
+            System.out.println("Client Info:\n" +
+                    "Host Name: " + client.getHostName() + "\n" +
+                    "IP Address: " + client.getHostAddress() + "\n");
+
+            System.out.println("Server Info:\n" +
+                    "Host Name: " + host.getHostName() + "\n" +
+                    "IP Address: " + host.getHostAddress() + "\n" +
+                    "Port: " + port + "\n");
+
+            System.out.println("File Info:\n" +
+                    "File Name: " + file.getName() + "\n" +
+                    "File Size: " + RateMeasurement.getReadableByte(file.length(), "B") + "\n");
 
             // start file transfer
             FileTransfer fileTransfer = new FileTransfer(debugMode);

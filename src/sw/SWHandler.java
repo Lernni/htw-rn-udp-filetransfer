@@ -21,7 +21,7 @@ public class SWHandler {
     // temporary vars for dataIndication -> dataResponse
     private Short sessionNumber;
     private Byte packetNumber = null;
-    private InetAddress clientHost;
+    private InetAddress clientHost = null;
     private int clientPort;
 
     // vars for channel simulation of server
@@ -74,7 +74,7 @@ public class SWHandler {
             // send datagram
             rtoCalc.startTime();
             socket.send(datagramSendPacket);
-            if (debugMode) System.out.println("SW: >>> sent packet to host - (" +
+            if (debugMode) System.out.println("SW: >>> Sent packet to host - (" +
                     datagramSendPacket.getLength() + " Bytes) (PN: " + packet.getPacketNumber() + ")");
 
             // receive datagram
@@ -87,7 +87,7 @@ public class SWHandler {
                     }
                     socket.setSoTimeout(rtoCalc.getRTO());
                     socket.receive(datagramReceivePacket);
-                    if (debugMode) System.out.println("SW: <<< received packet from host - (" +
+                    if (debugMode) System.out.println("SW: <<< Received packet from host - (" +
                             datagramReceivePacket.getLength() + " Bytes)");
 
                     // check if received packet is valid and if the packet number is correct
@@ -135,7 +135,7 @@ public class SWHandler {
                 socket.receive(datagramReceivePacket);
             } while (!simulateChannel());
 
-            if (debugMode) System.out.println("SW: <<< received packet from client - (" +
+            if (debugMode) System.out.println("SW: <<< Received packet from client - (" +
                     datagramReceivePacket.getLength() + " Bytes)");
 
             // check if received packet is valid
@@ -176,7 +176,7 @@ public class SWHandler {
         boolean ackLost = simulateChannel();
         if (ackLost) {
             socket.send(datagramSendPacket);
-            if (debugMode) System.out.println("SW: >>> sent ACK packet to client - (" +
+            if (debugMode) System.out.println("SW: >>> Sent ACK packet to client - (" +
                     datagramSendPacket.getLength() + " Bytes) (PN: " + ackPacket.getPacketNumber() + ")");
         }
         return ackLost;
