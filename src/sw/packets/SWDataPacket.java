@@ -11,7 +11,7 @@ import java.util.Arrays;
 * */
 
 public class SWDataPacket extends SWPacket {
-    public static final int PACKET_SIZE = 1350; // make it var
+    public static final int PACKET_SIZE = 1400;
     public final int HEADER_SIZE = this.sessionNumber.BYTES + this.packetNumber.BYTES;
     public final int MAX_CONTENT_SIZE = PACKET_SIZE - HEADER_SIZE;
 

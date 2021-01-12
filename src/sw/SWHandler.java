@@ -87,6 +87,8 @@ public class SWHandler {
                     }
                     socket.setSoTimeout(rtoCalc.getRTO());
                     socket.receive(datagramReceivePacket);
+
+                    rateMeasurement.addSize(datagramSendPacket.getLength());
                     if (debugMode) System.out.println("SW: <<< Received packet from host - (" +
                             datagramReceivePacket.getLength() + " Bytes)");
 
@@ -96,7 +98,6 @@ public class SWHandler {
                         if (debugMode) System.out.println("SW: Received ACK: PN: " + ackPacket.getPacketNumber());
                         if (packet.getPacketNumber() == ackPacket.getPacketNumber()) {
                             rtoCalc.stopTime();
-                            rateMeasurement.addSize(datagramSendPacket.getLength());
                             break;
                         } else {
                             System.out.println("SW: Received ACK is invalid! Waiting for valid ACK...");

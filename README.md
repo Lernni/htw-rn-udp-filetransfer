@@ -4,7 +4,7 @@ Lenny Reitz
  
 ## Funktionen
 
-### Konkrete Testszenarieren
+### Konkrete Testszenarien
 - [x] Funktion Client + Server ohne Fehlersimulation
 - [x] Funktion Client + Server mit Fehlersimulation
 - [ ] Funktion Client + Server über Hochschulproxy
@@ -12,6 +12,7 @@ Lenny Reitz
 - [x] Funktion Client + Hochschulserver mit Fehlersimulation
 
 ## Dokumentation
+- [LaTeX Dokumentation](https://github.com/Lernni/htw-rn-udp-filetransfer/tree/main/doc)
 
 ## Installation
 ### 1. Kompilieren des Programms

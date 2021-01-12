@@ -3,6 +3,7 @@ package sw;
 public class RTOCalc {
 
     // RTO calculation after RFC 6298 like TCP
+    // for client timeout
     // without clock resolution
 
     private final double alpha = 0.125;
