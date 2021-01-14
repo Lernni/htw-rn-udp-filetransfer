@@ -22,14 +22,14 @@ Anmerkung: Beide Hochschulserver empfangen die vom Client gesendete Datei korrek
 
 ### 2. Anwendung ausführen
 #### 2.1 Server
-`./filetransfer server <port> [<loss_rate> <avg_delay>] [debug]`
+`./filetransfer server <port> [<loss_rate> <avg_delay>] ['debug']`
 - **port** - Integer-Wert (in der Regel über 1000) gibt an, auf welchem Port der Server auf Anfragen wartet
 - **loss_rate** - (optional) Double-Wert zwischen 0.0 - 1.0 gibt an, mit welcher Wahrscheinlichkeit der Server ein verloren gegangenes Paket simuliert
 - **avg_delay** - (optional) Integer-Wert in ms gibt an, mit welche mittlere Verzögerung der Server für Ankunft und Antwort von Paketen simuliert
 - **'debug'** - (optional) Durch Angeben von 'Debug', wird der Server im Debug-Modus gestartet, es werden mehr Ausgaben in der Konsole angezeigt
 
 #### 2.2 Client
-`./filetransfer client <host_name/ip_address> <port> <file> [debug]`
+`./filetransfer client <host_name/ip_address> <port> <file> ['debug']`
 - **host_name/ip_address** - Adresse des Servers (Hostname oder IP), an die eine Datei gesendet werdem soll
 - **port** - Integer-Wert (in der Regel über 1000) gibt an, an welchem Port der Server auf Dateien wartet
 - **file** - Dateiname bzw. Dateipfad der Datei, die versendet werden soll

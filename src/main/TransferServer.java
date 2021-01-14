@@ -6,7 +6,7 @@ import java.net.InetAddress;
 
 public class TransferServer {
     public static void main(String[] args) throws Exception {
-        final String requiredArgs = "required arguments: port [loss_rate avg_delay] ['debug']";
+        final String requiredArgs = "required arguments: <port> [<loss_rate> <avg_delay>] ['debug']";
 
         if (args.length > 4 || args.length < 1) {
             System.out.println(requiredArgs);

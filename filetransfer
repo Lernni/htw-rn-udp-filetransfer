@@ -1,8 +1,8 @@
 #!/bin/bash
 
 USAGE_MSG="required arguments:\n
-Client: $0 client <hostname/ip> <port> <file> [debug]
-Server: $0 server <port> [<loss_rate> <avg_delay> debug]"
+Client: $0 client <hostname/ip> <port> <file> ['debug']
+Server: $0 server <port> [<loss_rate> <avg_delay>] ['debug']"
 
 if [ "$1" == "server" ] && [ $# -ge 2 ] && [ $# -le 5 ]
 then
