@@ -10,11 +10,13 @@ public class RTOCalc {
     private final double beta = 0.25;
 
     private int RTO;
+    private final int minRTO;
     private long RTT;
     private double sRTT = 0;
     private double RTTVAR;
 
-    public RTOCalc(int startRTO) {
+    public RTOCalc(int startRTO, int minRTO) {
+        this.minRTO = minRTO;
         RTO = startRTO;
     }
 
@@ -24,6 +26,8 @@ public class RTOCalc {
 
     public void stopTime() {
         RTT = System.currentTimeMillis() - RTT;
+
+        if (RTT < minRTO) RTT = minRTO;
 
         if (sRTT == 0.0) {
             sRTT = RTT;

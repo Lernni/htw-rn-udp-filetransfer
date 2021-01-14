@@ -13,7 +13,13 @@ public class TransferClient {
             System.out.println("*** UDP File Transfer - Client ***\n");
 
             // initialize variables
-            InetAddress host = InetAddress.getByName(args[0]);
+            InetAddress host;
+            try {
+                host = InetAddress.getByName(args[0]);
+            } catch (UnknownHostException e) {
+                System.out.println("Error: Please enter a valid host!");
+                return;
+            }
 
             int port;
             try {
@@ -56,6 +62,8 @@ public class TransferClient {
                 System.out.println("Error: File '" + file.getName() + "' could not be sent to host '" +
                         host.getHostName() + "' on port " + port + "!");
             }
+
+            System.exit(0);
         }
     }
 }

@@ -16,7 +16,7 @@ public class FileTransfer {
     private final int SERVER_TIMEOUT = 10000;
     private final int CLIENT_TIMEOUT = 1000; // start value
 
-    private boolean debugMode;
+    private final boolean debugMode;
     private double lossRate;
     private int averageDelay;
 

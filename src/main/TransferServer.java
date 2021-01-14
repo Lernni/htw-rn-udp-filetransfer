@@ -1,7 +1,5 @@
 package main;
 
-import sw.RateMeasurement;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -32,6 +30,12 @@ public class TransferServer {
                 if (args.length >= 3) {
                     lossRate = Double.parseDouble(args[1]);
                     averageDelay = Integer.parseInt(args[2]);
+
+                    if (lossRate < 0 || lossRate > 1 || averageDelay < 0) {
+                        System.out.println("Error: Please enter a number in valid bounds!\n" +
+                                "avg_delay must be bigger 0, loss_rate must be between 0.0 and 1.0\n");
+                        return;
+                    }
                 }
             } catch (NumberFormatException e) {
                 System.out.println("Error: Please enter a valid number!\n" +

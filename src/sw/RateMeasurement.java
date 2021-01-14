@@ -12,13 +12,14 @@ public class RateMeasurement {
     private Long avgRate = null;
     private Long currentRate = null;
 
-    private Timer timer;
-    private String printFormat;
+    private final Timer timer;
+    private final String printFormat;
     private boolean timerRunning = false;
-    private int period;
+    private final int period;
     private int sizeIncrement = 0;
     private int sizeMeasured = 0;
     private long fileSize;
+    private long stepDuration = 0;
     private final String UNIT_BPS = "B/s";
     private final String UNIT_BYTES = "B";
 
@@ -38,27 +39,14 @@ public class RateMeasurement {
 
     // before file request
     public void start() {
+        stepDuration = System.currentTimeMillis();
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                currentRate = (long) sizeIncrement / (period / 1000);
-                sizeMeasured += sizeIncrement;
-                sizeIncrement = 0;
-
-                if (minRate == null) minRate = currentRate;
-                if (maxRate == null) maxRate = currentRate;
-                if (currentRate < minRate) minRate = currentRate;
-                if (currentRate > maxRate) maxRate = currentRate;
-                if (avgRate == null) {
-                    avgRate = currentRate;
-                } else {
-                    avgRate += currentRate;
-                    avgRate /= 2;
-                }
-
+                calcRate();
                 System.out.printf((printFormat) + "%n", getRate());
             }
-        }, 0, period);
+        }, period, period);
         timerRunning = true;
     }
 
@@ -66,9 +54,31 @@ public class RateMeasurement {
     public void stop() {
         timerRunning = false;
         timer.cancel();
+        calcRate();
+        System.out.printf((printFormat) + "%n", getResults());
+    }
+
+    private void calcRate() {
+        stepDuration = System.currentTimeMillis() - stepDuration;
+
+        if (stepDuration == 0) stepDuration = 1;
+
+        currentRate = (long) (sizeIncrement / (stepDuration / 1000.0));
         sizeMeasured += sizeIncrement;
         sizeIncrement = 0;
-        System.out.printf((printFormat) + "%n", getResults());
+
+        if (minRate == null) minRate = currentRate;
+        if (maxRate == null) maxRate = currentRate;
+        if (currentRate < minRate) minRate = currentRate;
+        if (currentRate > maxRate) maxRate = currentRate;
+        if (avgRate == null) {
+            avgRate = currentRate;
+        } else {
+            avgRate += currentRate;
+            avgRate /= 2;
+        }
+
+        stepDuration = System.currentTimeMillis();
     }
 
     private String getRate() {

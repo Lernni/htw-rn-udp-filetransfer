@@ -11,12 +11,13 @@ import java.util.Random;
 public class SWHandler {
 
     private final int MAX_TIMEOUT_RETRIES = 10;
+    private final int MIN_TIMEOUT = 30; // minimum timeout value in ms
     private final int MAX_EXPECTED_BYTES = 65507; // Max: 65535 Byte - 8 Byte UDP header - 20 Byte IP
 
-    private DatagramSocket socket;
+    private final DatagramSocket socket;
     private RateMeasurement rateMeasurement;
     private RTOCalc rtoCalc;
-    private boolean debugMode;
+    private final boolean debugMode;
 
     // temporary vars for dataIndication -> dataResponse
     private Short sessionNumber;
@@ -32,8 +33,7 @@ public class SWHandler {
     // either serverHost and serverPort if dataRequest
     // or localhost (host = null) and serverPort if dataIndication, dataResponse
     private InetAddress host;
-    private int port;
-    private int timeout;
+    private final int port;
 
     // constructor for client use
     public SWHandler(InetAddress host, int port, int timeout, RateMeasurement rateMeasurement, boolean debugMode)
@@ -41,10 +41,9 @@ public class SWHandler {
         this.host = host;
         this.port = port;
         this.debugMode = debugMode;
-        this.timeout = timeout;
         this.rateMeasurement = rateMeasurement;
         socket = new DatagramSocket();
-        rtoCalc = new RTOCalc(timeout);
+        rtoCalc = new RTOCalc(timeout, MIN_TIMEOUT);
     }
 
     // constructor for server use
@@ -53,7 +52,6 @@ public class SWHandler {
         this.lossRate = lossRate;
         this.averageDelay = averageDelay;
         this.debugMode = debugMode;
-        this.timeout = timeout;
         random = new Random();
         socket = new DatagramSocket(port);
         socket.setSoTimeout(timeout);
@@ -101,6 +99,7 @@ public class SWHandler {
                             break;
                         } else {
                             System.out.println("SW: Received ACK is invalid! Waiting for valid ACK...");
+                            // let rtoCalc run further to adapt with a longer timeout for the next paket
                         }
                     }
                 }
