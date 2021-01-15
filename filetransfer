@@ -4,14 +4,23 @@ USAGE_MSG="required arguments:\n
 Client: $0 client <hostname/ip> <port> <file> ['debug']
 Server: $0 server <port> [<loss_rate> <avg_delay>] ['debug']"
 
+s_nr="sXXXXX"
+bin_dir="bin"
+current_dir=${PWD##*/}
+
+if [ "$current_dir" != "$s_nr" ] && [ "$current_dir" != "htw-rn-udp-filetransfer" ]
+then
+  bin_dir="$s_nr/bin"
+fi
+
 if [ "$1" == "server" ] && [ $# -ge 2 ] && [ $# -le 5 ]
 then
   # -cp option as classpath specifies location of java program: bin
   # putting double quotes around the arguments results in weird args.length behavior in java
-  java -cp bin main.TransferServer $2 $3 $4 $5
+  java -cp $bin_dir main.TransferServer $2 $3 $4 $5
 elif [ "$1" == "client" ] && [ $# -ge 4 ] && [ $# -le 5 ]
 then
-  java -cp bin main.TransferClient $2 $3 $4 $5
+  java -cp $bin_dir main.TransferClient $2 $3 $4 $5
 else
   echo -e "$USAGE_MSG"
 fi

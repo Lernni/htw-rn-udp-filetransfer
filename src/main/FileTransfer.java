@@ -136,9 +136,9 @@ public class FileTransfer {
 
         // check if file in start packet already exists locally and rename it in that case
         // System.getProperty("user.dir") - returns String of path, where the application was executed
-        File file = new File(System.getProperty("user.dir") + "\\" + startPacket.getFileName());
+        File file = new File(System.getProperty("user.dir") + File.separator + startPacket.getFileName());
 
-        if (file.exists()) {
+        if (file.exists() && file.isFile()) {
             File newFile;
             String newFileName;
             int duplicates = 1;
