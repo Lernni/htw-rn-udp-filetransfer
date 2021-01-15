@@ -20,7 +20,7 @@ public class SWHandler {
     private final boolean debugMode;
 
     // temporary vars for dataIndication -> dataResponse
-    private Short sessionNumber;
+    private Short sessionNumber = null;
     private Byte packetNumber = null;
     private InetAddress clientHost = null;
     private int clientPort;
@@ -148,9 +148,16 @@ public class SWHandler {
             if (debugMode) System.out.println("SW: Received packet: PN: " + packet.getPacketNumber());
 
             // set temporary sender information for future data response
-            sessionNumber = packet.getSessionNumber();
             clientHost = datagramReceivePacket.getAddress();
             clientPort = datagramReceivePacket.getPort();
+
+            if (sessionNumber == null) {
+                sessionNumber = packet.getSessionNumber();
+            } else if (sessionNumber != packet.getSessionNumber()) {
+                System.out.println("SW: Received packet was not expected! Wrong Session Number! Resend ACK...");
+                dataResponse();
+                continue;
+            }
 
             if (packetNumber == null || packetNumber != packet.getPacketNumber()) {
                 // received packet is valid - break loop
@@ -190,7 +197,7 @@ public class SWHandler {
 
     private boolean simulateChannel() {
         // simulate network delay
-        if (averageDelay != 0.0) {
+        if (averageDelay != 0) {
             try {
                 int currentDelay = (int) (random.nextDouble() * 2 * averageDelay);
                 if (debugMode) System.out.println("SW: simulate network delay... (" + currentDelay + " ms)");
@@ -199,7 +206,7 @@ public class SWHandler {
         }
 
         // decide whether to reply, or simulate packet loss
-        if (lossRate == 0) return true;
+        if (lossRate == 0.0) return true;
         boolean packetLost = !(random.nextDouble() < lossRate);
         if (!packetLost) System.out.println("SW: simulate packet loss...");
         return packetLost;
