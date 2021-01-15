@@ -11,7 +11,7 @@ import java.util.Random;
 public class SWHandler {
 
     private final int MAX_TIMEOUT_RETRIES = 10;
-    private final int MIN_TIMEOUT = 30; // minimum timeout value in ms
+    private final int MIN_TIMEOUT = 50; // minimum timeout value in ms
     private final int MAX_EXPECTED_BYTES = 65507; // Max: 65535 Byte - 8 Byte UDP header - 20 Byte IP
 
     private final DatagramSocket socket;
